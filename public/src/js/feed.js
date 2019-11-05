@@ -44,6 +44,12 @@ function onSaveButtonClick(event) {
   }
 }
 
+function clearCard() {
+  while(sharedMomentsArea.hasChildNodes()){
+    sharedMomentsArea.removeChild(sharedMomentsArea.lastChild)
+  }
+}
+
 function createCard() {
   var cardWrapper = document.createElement('div');
   cardWrapper.className = 'shared-moment-card mdl-card mdl-shadow--2dp';
@@ -71,10 +77,33 @@ function createCard() {
   sharedMomentsArea.appendChild(cardWrapper);
 }
 
-fetch('https://httpbin.org/get')
+var url = 'https://httpbin.org/get'
+var networkDataReceive = false
+
+fetch(url)
   .then(function(res) {
     return res.json();
   })
   .then(function(data) {
+    networkDataReceive  = true
+    console.log('From Web : ',data);
+    clearCard();
     createCard();
   });
+
+
+if('caches' in window){
+  caches.match(url)
+    .then(function(response) {
+      if(response){
+        response.json();
+      }
+    })
+    .then(function(data) {
+      if(!networkDataReceive) {
+        clearCard();
+        createCard();
+      }
+    })
+}
+
