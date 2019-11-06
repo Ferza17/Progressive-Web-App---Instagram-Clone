@@ -20,6 +20,15 @@ function openCreatePostModal() {
 
     deferredPrompt = null;
   }
+
+  // if ('serviceWorker' in navigator) {
+  //   navigator.serviceWorker.getRegistration()
+  //     .then(function(registrations) {
+  //       for (var i = 0; i < registrations.length; i++){
+  //         registrations[i].unregister()
+  //       }
+  //     })
+  // }
 }
 
 function closeCreatePostModal() {
@@ -50,23 +59,23 @@ function clearCard() {
   }
 }
 
-function createCard() {
+function createCard(data) {
   var cardWrapper = document.createElement('div');
   cardWrapper.className = 'shared-moment-card mdl-card mdl-shadow--2dp';
   var cardTitle = document.createElement('div');
   cardTitle.className = 'mdl-card__title';
-  cardTitle.style.backgroundImage = 'url("/src/images/sf-boat.jpg")';
+  cardTitle.style.backgroundImage = 'url('+ data.image + ')';
   cardTitle.style.backgroundSize = 'cover';
   cardTitle.style.height = '180px';
   cardWrapper.appendChild(cardTitle);
   var cardTitleTextElement = document.createElement('h2');
   cardTitleTextElement.style.color='black';
   cardTitleTextElement.className = 'mdl-card__title-text';
-  cardTitleTextElement.textContent = 'San Francisco Trip';
+  cardTitleTextElement.textContent = data.title;
   cardTitle.appendChild(cardTitleTextElement);
   var cardSupportingText = document.createElement('div');
   cardSupportingText.className = 'mdl-card__supporting-text';
-  cardSupportingText.textContent = 'In San Francisco';
+  cardSupportingText.textContent = data.location;
   cardSupportingText.style.textAlign = 'center';
   // var cardSaveButton = document.createElement('button');
   // cardSaveButton.textContent = 'Save';
@@ -77,7 +86,15 @@ function createCard() {
   sharedMomentsArea.appendChild(cardWrapper);
 }
 
-var url = 'https://httpbin.org/get'
+function updateUI (data) {
+  clearCard()
+  for(var i = 0; i < data.length; i++){
+    createCard(data[i])
+  }
+}
+
+
+var url = 'https://pwagram-4a4fe.firebaseio.com/posts.json'
 var networkDataReceive = false
 
 fetch(url)
@@ -86,9 +103,12 @@ fetch(url)
   })
   .then(function(data) {
     networkDataReceive  = true
-    console.log('From Web : ',data);
-    clearCard();
-    createCard();
+    console.log('From Web : ',data)
+    var dataArray = []
+    for (var key in data){
+      dataArray.push(data[key])
+    }
+    updateUI(dataArray)
   });
 
 
@@ -96,13 +116,17 @@ if('caches' in window){
   caches.match(url)
     .then(function(response) {
       if(response){
-        response.json();
+        return response.json();
       }
     })
     .then(function(data) {
+      console.log('From Cache',data);
       if(!networkDataReceive) {
-        clearCard();
-        createCard();
+        var dataArray = []
+        for (var key in data){
+          dataArray.push(data[key])
+        }
+        updateUI(dataArray)
       }
     })
 }
