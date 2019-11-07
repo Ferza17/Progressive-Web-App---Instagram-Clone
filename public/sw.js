@@ -1,8 +1,8 @@
 importScripts('/src/js/idb.js');
 importScripts('/src/js/utility.js');
 
-var CACHE_STATIC_NAME = 'static-v18';
-var CACHE_DYNAMIC_NAME = 'dynamic-v5';
+var CACHE_STATIC_NAME = 'static-v23';
+var CACHE_DYNAMIC_NAME = 'dynamic-v2';
 var STATIC_FILES = [
   '/',
   '/index.html',
@@ -74,23 +74,20 @@ function isInArray(string, array) {
 
 self.addEventListener('fetch', function (event) {
 
-  var url = 'https://pwagram-4a4fe.firebaseio.com/';
+  var url = 'https://pwagram-4a4fe.firebaseio.com/posts';
   if (event.request.url.indexOf(url) > -1) {
     event.respondWith(fetch(event.request)
       .then(function (res) {
         var clonedRes = res.clone();
         clearAllData('posts')
-          .then(function(){
-            return clonedRes.json()
+          .then(function () {
+            return clonedRes.json();
           })
-          .then(function(data) {
-            for (var key in data){
-              writeData('posts',data[key])
-                .then(function() {
-                  deleteItemFromData('pots', key)
-                })
+          .then(function (data) {
+            for (var key in data) {
+              writeData('posts', data[key])
             }
-          })
+          });
         return res;
       })
     );
