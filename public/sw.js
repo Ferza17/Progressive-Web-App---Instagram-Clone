@@ -1,7 +1,7 @@
 importScripts('/src/js/idb.js');
 importScripts('/src/js/utility.js');
 
-var CACHE_STATIC_NAME = 'static-v23';
+var CACHE_STATIC_NAME = 'static-v26';
 var CACHE_DYNAMIC_NAME = 'dynamic-v2';
 var STATIC_FILES = [
   '/',
@@ -180,3 +180,47 @@ self.addEventListener('fetch', function (event) {
 //     fetch(event.request)
 //   );
 // });
+
+
+// Sync send data  --> Send data when back online
+self.addEventListener('sync', function (event) {
+  if (event.tag === 'sync-new-posts') {
+    console.log('[Service Worker] Syncing new Posts')
+    event.waitUntil(
+      readAllData('sync-posts') 
+        .then(function (data) {
+          for (var i=0; i < data.length; i++ ){
+              fetch('https://us-central1-pwagram-4a4fe.cloudfunctions.net/storePostData', {
+                method: 'POST',
+                headers: {
+                  'Content-Type' : 'application/json',
+                  'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                  id: data[i].id,
+                  title: data[i].title,
+                  location: data[i].location,
+                  image: 'https://cdn2.tstatic.net/tribunnews/foto/bank/images/bromo-tengger-semeru-national-park.jpg'
+                })
+              })
+              .then(function(res) {
+                console.log('Send data : ', data)
+                if(res.ok){
+                  res.json()
+                    .then(function(resData) {
+                      for (var j=0; j < resData.length; j++ ){
+                        console.log('[resData[i].id]',resData[j].id);
+                        deleteItemFromData('sync-posts', resData[j].id)
+                      }
+                    })
+                }
+              })
+              .catch(function (err) {
+                console.log('Error while sending data : ',err)
+              })
+          }
+          
+        })
+    )
+  }
+})

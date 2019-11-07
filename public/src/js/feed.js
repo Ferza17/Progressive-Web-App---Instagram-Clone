@@ -2,6 +2,9 @@ var shareImageButton = document.querySelector('#share-image-button');
 var createPostArea = document.querySelector('#create-post');
 var closeCreatePostModalButton = document.querySelector('#close-create-post-modal-btn');
 var sharedMomentsArea = document.querySelector('#shared-moments');
+var form = document.querySelector('form')
+var titleInput = document.querySelector('#title')
+var locationInput = document.querySelector('#location')
 
 function openCreatePostModal() {
   // createPostArea.style.display = 'block';
@@ -120,3 +123,66 @@ if ('indexedDB' in window) {
       }
     });
 }
+
+function sendData () {
+  var date = new Date()
+  var isoSting = date.toISOString();
+  fetch('https://us-central1-pwagram-4a4fe.cloudfunctions.net/storePostData', {
+    method: 'POST',
+    headers: {
+      'key': 'Access-Control-Allow-Origin',
+      'Content-Type' : 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+      id: isoSting,
+      title: titleInput.value,
+      location: locationInput.value,
+      image: 'https://cdn2.tstatic.net/tribunnews/foto/bank/images/bromo-tengger-semeru-national-park.jpg'
+    })
+  })
+    .then(function(res) {
+      console.log('Send data : ', res)
+      updateUI()
+    })
+}
+
+form.addEventListener('submit', function( event) {
+  if (titleInput.value.trim() === '' || locationInput.value.trim() === '') {
+    alert('Please enter valid data!')
+    return;
+  }
+  closeCreatePostModal()
+
+  if('serviceWorker' in navigator && 'SyncManager' in window){
+    navigator.serviceWorker.ready
+      .then(function (sw) {
+        var date = new Date()
+        var isoSting = date.toISOString();
+        var post = {
+          id: isoSting,
+          title: titleInput.value,
+          location: locationInput.value
+        }
+        writeData('sync-posts', post)
+          .then(function() {
+            sw.sync.register('sync-new-posts')
+          })
+          .then(function() {
+            var snackbarContainer = document.querySelector('#confirmation-toast')
+            var data = {
+              message: 'Your Post was saver for sync!',
+              timeout: 2000,
+              actionText: 'Undo'
+            };
+            snackbarContainer.MaterialSnackbar.showSnackbar(data);
+          })
+          .catch(function (err) {
+            console.log(err)
+          })
+      })
+  }else{
+    sendData()
+  }
+  event.preventDefault()
+})
