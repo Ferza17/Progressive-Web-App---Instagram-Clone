@@ -1,13 +1,14 @@
 importScripts('/src/js/idb.js');
 importScripts('/src/js/utility.js');
 
-var CACHE_STATIC_NAME = 'static-v28';
-var CACHE_DYNAMIC_NAME = 'dynamic-v2';
+var CACHE_STATIC_NAME = 'static-v34';
+var CACHE_DYNAMIC_NAME = 'dynamic-v3';
 var STATIC_FILES = [
   '/',
   '/index.html',
   '/offline.html',
   '/src/js/app.js',
+  '/src/js/utility.js',
   '/src/js/feed.js',
   '/src/js/idb.js',
   '/src/js/promise.js',
@@ -190,18 +191,15 @@ self.addEventListener('sync', function (event) {
       readAllData('sync-posts') 
         .then(function (data) {
           for (var i=0; i < data.length; i++ ){
+              var postData = new FormData()
+              postData.append('id', data[i].id)
+              postData.append('title', data[i].title)
+              postData.append('location', data[i].location)
+              postData.append('file', data[i].picture, data[i].id + '.png')
+
               fetch('https://us-central1-pwagram-4a4fe.cloudfunctions.net/storePostData', {
                 method: 'POST',
-                headers: {
-                  'Content-Type' : 'application/json',
-                  'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                  id: data[i].id,
-                  title: data[i].title,
-                  location: data[i].location,
-                  image: 'https://cdn2.tstatic.net/tribunnews/foto/bank/images/bromo-tengger-semeru-national-park.jpg'
-                })
+                body: postData
               })
               .then(function(res) {
                 console.log('Send data : ', data)
@@ -237,11 +235,48 @@ self.addEventListener('notificationclick', function (event) {
     notification.close()
   }else{
     console.log('[Service Worker] Cancel Confirm', action)
-    notification.close()
+    event.waitUntil(
+      clients.matchAll()
+        .then(function (clis) {
+          var client = clis.find(function (c) {
+            return c.visibilityState === 'visible'
+          })
+          if (client !== undefined){
+            client.navigate(notification.data.url)
+            client.focus()
+          }else {
+            clients.openWindow(notification.data.url)
+          }
+          notification.close()
+        })
+    )
   }
 })
 
 // Handle when user close Notification
 self.addEventListener('notificationclose', function (event) {
   console.log('Notification was closed', event);
+})
+
+//handle Notification from server
+self.addEventListener('push', function (event) {
+  console.log('Push Notification receives', event);
+
+  var data = {title: 'New!', content: 'Something new happened!', openUrl: '/'}
+  if (event.data){
+    data = JSON.parse(event.data.text())
+  }
+
+  var options = {
+    body: data.content,
+    icon: '/src/images/icons/app-icon-96x96.png',
+    badge: '/src/images/icons/app-icon-96x96.png',
+    data: {
+      url: data.openUrl
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  )
 })
